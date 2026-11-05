@@ -1,0 +1,45 @@
+---
+name: renovate
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_level:
+        description: 'log level'
+        required: false
+        default: info
+        options:
+          - info
+          - trace
+          - debug
+          - warn
+          - error
+          - fatal
+        type: choice
+
+env:
+  RENOVATE_PLATFORM: github
+  RENOVATE_TOKEN: '${{ secrets.RENOVATE_TOKEN }}'
+  RENOVATE_CONFIG_FILE: renovate.js
+  LOG_LEVEL: '${{ inputs.log_level }}'
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Build Renovate
+        run: docker build -t renovate:${{ github.sha }} -f Containerfile .
+      - name: Run Renovate
+        run: |
+          docker run \
+            --rm \
+            -v $(pwd):/data \
+            -e RENOVATE_PLATFORM=${RENOVATE_PLATFORM} \
+            -e RENOVATE_TOKEN=${RENOVATE_TOKEN} \
+            -e RENOVATE_CONFIG_FILE=${RENOVATE_CONFIG_FILE} \
+            -e LOG_LEVEL=${LOG_LEVEL} \
+            --entrypoint /container-entrypoint.sh \
+            renovate:${{ github.sha }} a-st/sample-repo-renovate-pr-47717
+
